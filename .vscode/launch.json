@@ -1,0 +1,26 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug lc3bsim6",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/lc3bsim6.exe",
+            "preLaunchTask": "C/C++: gcc.exe build active file",
+            "args": ["ucode6", "test.obj"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "C:\\Strawberry\\c\\bin\\gdb.exe",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}

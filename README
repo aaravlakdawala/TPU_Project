@@ -1,0 +1,18 @@
+Firstly you need these files test.asm test.obj lc3bsim6.c ucode6 assembler.linux pipelined_run.py build_obj.sh run_sim.sh and run_with_logs.sh in your main folder (in my case this is EE460N_LAB6)
+
+Secondly you need UBUNTU and in UBUNTU you need to install python on it
+
+After that all u have to do is run
+
+bash run_with_logs.sh
+
+in UBUNTU (I run WSL on windows) and it will do the rest.
+This will create a new folder in logs/ with the next available TestN name, and save the following files there:
+
+- testN.asm (copy of the original ASM file)
+- testN.obj (generated object file)
+- pipelined_resultN.txt (output from pipelined_run.py)
+- run_sim_resultN.txt (output from run_sim.sh)
+- metadata folder (can ignore)
+
+If you want to code a new test case all you have to do is edit the test.asm file and the bash run_with_logs.sh will handle the rest from recompling your c code to making the obj files, determining max cycles and outputing everything

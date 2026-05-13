@@ -1,0 +1,14 @@
+# Ignore logs and regression data
+logs/
+raw_output.txt
+regressionModelTest.txt
+
+# Ignore Node.js dependencies
+node_modules/
+package-lock.json
+
+# Ignore compiled executables
+*.exe
+lc3bsim6
+assembler.linuxlogs/
+node_modules/
