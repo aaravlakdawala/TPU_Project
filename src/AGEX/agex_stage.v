@@ -5,9 +5,7 @@ module agex_stage (
     input  wire        reset,
 
     /*
-        These are the outputs of the DE/AGEX pipeline registers.
-        For now, your testbench will drive them directly.
-        Later, DE stage will produce/latch these.
+        Outputs of the DE/AGEX pipeline registers.
     */
     input  wire [15:0] agex_npc,
     input  wire [15:0] agex_ir,
@@ -15,38 +13,12 @@ module agex_stage (
     input  wire [15:0] agex_sr2,
     input  wire [2:0]  agex_cc,
     input  wire [2:0]  agex_drid,
+    input  wire [20:0] agex_cs,
     input  wire        agex_v,
 
     /*
-        Current AGEX datapath control signals.
-        Later these should come from AGEX.CS.
-    */
-    input  wire [2:0]  aluk,
-    input  wire        sr2mux_sel,
-    input  wire        alu_resultmux_sel,
-
-    input  wire        addr1mux_sel,
-    input  wire [1:0]  addr2mux_sel,
-    input  wire        lshf1_sel,
-    input  wire        addressmux_sel,
-
-    /*
-        These are the AGEX-stage control bits that must be visible
-        to earlier pipeline stages for dependency/control-stall logic.
-    */
-    input  wire        agex_ld_cc,
-    input  wire        agex_ld_reg,
-    input  wire        agex_br_stall,
-
-    /*
-        These are the control bits that must travel into MEM.
-        We are not fully building the control store yet, so this is passed in.
-    */
-    input  wire [10:0] agex_mem_cs_in,
-
-    /*
         MEM.STALL comes from the MEM stage.
-        If MEM is stalled, AGEX must NOT overwrite MEM registers.
+        If MEM is stalled, AGEX must not overwrite MEM registers.
     */
     input  wire        mem_stall,
 
@@ -59,7 +31,7 @@ module agex_stage (
     output wire        v_agex_br_stall,
 
     /*
-        These are the AGEX/MEM pipeline registers.
+        AGEX/MEM pipeline registers.
     */
     output reg  [15:0] mem_npc,
     output reg  [15:0] mem_ir,
@@ -89,12 +61,75 @@ module agex_stage (
     output wire [15:0] sext9_out,
     output wire [15:0] sext11_out,
     output wire [15:0] zext8_lshf1_out,
-    output wire [15:0] address_adder_out
+    output wire [15:0] address_adder_out,
+
+    /*
+        Optional control debug outputs.
+    */
+    output wire [2:0]  aluk_debug,
+    output wire        sr2mux_sel_debug,
+    output wire        alu_resultmux_sel_debug,
+    output wire        addr1mux_sel_debug,
+    output wire [1:0]  addr2mux_sel_debug,
+    output wire        lshf1_sel_debug,
+    output wire        addressmux_sel_debug
 );
 
     /*
+        Unpack AGEX.CS into individual AGEX controls.
+    */
+    wire        addr1mux_sel;
+    wire [1:0]  addr2mux_sel;
+    wire        lshf1_sel;
+    wire        addressmux_sel;
+    wire        sr2mux_sel;
+    wire [2:0]  aluk;
+    wire        alu_resultmux_sel;
+
+    wire        br_op;
+    wire        uncond_op;
+    wire        trap_op;
+
+    wire        agex_br_stall;
+    wire        dcache_en;
+    wire        dcache_rw;
+    wire        data_size;
+
+    wire [1:0]  dr_valuemux;
+    wire        agex_ld_reg;
+    wire        agex_ld_cc;
+
+    wire [10:0] agex_mem_cs_in;
+
+    agex_control_unpack AGEX_CONTROL_UNPACK_UNIT (
+        .agex_cs(agex_cs),
+
+        .addr1mux_sel(addr1mux_sel),
+        .addr2mux_sel(addr2mux_sel),
+        .lshf1_sel(lshf1_sel),
+        .addressmux_sel(addressmux_sel),
+        .sr2mux_sel(sr2mux_sel),
+        .aluk(aluk),
+        .alu_resultmux_sel(alu_resultmux_sel),
+
+        .br_op(br_op),
+        .uncond_op(uncond_op),
+        .trap_op(trap_op),
+
+        .agex_br_stall(agex_br_stall),
+        .dcache_en(dcache_en),
+        .dcache_rw(dcache_rw),
+        .data_size(data_size),
+
+        .dr_valuemux(dr_valuemux),
+        .agex_ld_reg(agex_ld_reg),
+        .agex_ld_cc(agex_ld_cc),
+
+        .mem_cs_in(agex_mem_cs_in)
+    );
+
+    /*
         AGEX combinational datapath.
-        This is the part you already built and tested.
     */
     agex_datapath_core AGEX_DATAPATH_CORE_UNIT (
         .agex_npc(agex_npc),
@@ -131,17 +166,13 @@ module agex_stage (
     );
 
     /*
-        AGEX logic block.
-
         If MEM is stalled, do not load the MEM pipeline registers.
         Otherwise, AGEX can advance into MEM.
     */
     assign ld_mem = ~mem_stall;
 
     /*
-        These are "valid-gated" signals.
-        If AGEX.V = 0, the instruction is a bubble, so it should not count
-        as writing a register, writing CC, or being a real control instruction.
+        Valid-gated AGEX control signals.
     */
     assign v_agex_ld_cc    = agex_v & agex_ld_cc;
     assign v_agex_ld_reg   = agex_v & agex_ld_reg;
@@ -149,7 +180,6 @@ module agex_stage (
 
     /*
         AGEX/MEM pipeline registers.
-        These are the actual latch/register part.
     */
     always @(posedge clk) begin
         if (reset) begin
@@ -173,5 +203,16 @@ module agex_stage (
             mem_v          <= agex_v;
         end
     end
+
+    /*
+        Debug assignments.
+    */
+    assign aluk_debug              = aluk;
+    assign sr2mux_sel_debug        = sr2mux_sel;
+    assign alu_resultmux_sel_debug = alu_resultmux_sel;
+    assign addr1mux_sel_debug      = addr1mux_sel;
+    assign addr2mux_sel_debug      = addr2mux_sel;
+    assign lshf1_sel_debug         = lshf1_sel;
+    assign addressmux_sel_debug    = addressmux_sel;
 
 endmodule
